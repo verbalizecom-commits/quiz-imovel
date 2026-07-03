@@ -75,15 +75,26 @@ fbq('track','PageView');
   .whats{width:100%;border:none;border-radius:16px;padding:17px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;background:linear-gradient(135deg,#25C065,#179a4e);box-shadow:0 14px 30px rgba(31,157,87,.4);transition:transform .16s}
   .whats:hover{transform:translateY(-2px)}
   .whats svg{width:22px;height:22px}
+
+  /* V2: opção com título + descrição empilhados */
+  .opt .txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .opt .t{font-weight:700;font-size:15.5px;line-height:1.25}
+  .opt .d{font-weight:500;font-size:12.5px;color:var(--muted);line-height:1.35}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;color:var(--muted);font-weight:600;margin-bottom:7px}
+  .field input{width:100%;padding:15px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font-size:16px;outline:none;transition:border-color .2s}
+  .field input:focus{border-color:var(--accent)}
 </style>
+
 </head>
 <body>
 <div class="glow g1"></div><div class="glow g2"></div>
 <div class="wrap"><div class="panel" id="app"></div></div>
 <script>
-var CORRETOR_NOME = "J\u00e9ssica";
+var CORRETOR_NOME = "Jéssica";
 var WHATSAPP_NUMERO = "5583993043512";
-var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbwtN9S6f-gFYGbJdVAn3WDsjnpG8LBOoy4kUEHJGTtiuEvVOwdFA-84pPoN2nkvYjmRyA/exec";
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbwtN9S6f-gFYGbJdVAn3WDsjnpG8LBOoy4kUEHJGTtiuEvVOwdFA-84pPoN2nkvYjmRyA/exec";
+var PREVIEW = /[?&]preview=1/.test(location.search);
 
 var ORIGEM = (function(){
   var p = new URLSearchParams(window.location.search);
@@ -95,178 +106,197 @@ var ORIGEM = (function(){
   };
 })();
 
-var I = {
-  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>',
-  trend:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
-  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
-  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-  wallet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M16 12h.01"/></svg>',
-  bed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M2 16h20M6 10V7a2 2 0 0 1 2-2h2"/></svg>',
-  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>',
-  card:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',
-  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.5 12.5L20 3M16 7l3 3M14 9l2 2"/></svg>',
-  msg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.5 8.5 0 0 1 12 3a8.38 8.38 0 0 1 9 8.5z"/></svg>'
+var FAIXAS = {
+  B1:{k:"B1",label:"até R$ 400 mil"},
+  B2:{k:"B2",label:"R$ 400 mil a R$ 600 mil"},
+  B3:{k:"B3",label:"R$ 600 mil a R$ 1 milhão"},
+  B4:{k:"B4",label:"R$ 1 milhão a R$ 2 milhões"},
+  B5:{k:"B5",label:"acima de R$ 2 milhões"}
 };
-
-var PERGUNTAS = [
-  { key:"purpose", titulo:"Qual o seu objetivo?", subtitulo:"Isso muda tudo na busca.",
-    opcoes:[{v:"morar",l:"Morar",i:"home"},{v:"investir",l:"Investir",i:"trend"},{v:"decidindo",l:"Ainda decidindo",i:"search"}] },
-  { key:"region", titulo:"Qual regiao te atrai mais?", subtitulo:"Marque a sua preferida. Buscamos onde voc\u00ea quiser.",
-    opcoes:[{v:"bessa",l:"Bessa",i:"pin"},{v:"cabobranco",l:"Cabo Branco",i:"pin"},{v:"tambau",l:"Tambaú / Manaíra",i:"pin"},{v:"outra",l:"Outra / Indiferente",i:"pin"}] },
-  { key:"type", titulo:"Que tipo de imóvel procura?", subtitulo:"A tipologia ideal pra voc\u00ea.",
-    opcoes:[{v:"1q",l:"1 quarto",i:"bed"},{v:"2q",l:"2 quartos",i:"bed"},{v:"3q",l:"3 quartos ou mais",i:"bed"},{v:"cobertura",l:"Cobertura",i:"bed"}] },
-  { key:"price", titulo:"Qual faixa de investimento?", subtitulo:"",
-    opcoes:[{v:"ate400",l:"Até R$ 400 mil",i:"wallet"},{v:"400a600",l:"R$ 400 mil a R$ 600 mil",i:"wallet"},{v:"600a1m",l:"R$ 600 mil a R$ 1 milh\u00e3o",i:"wallet"},{v:"acima1m",l:"Acima de R$ 1 milh\u00e3o",i:"wallet"}] }
+var MATRIZ = {
+  aberto:      { "1q":["B1","B2","B3"], "2q":["B2","B3","B4"], "3q":["B2","B3","B4","B5"], cobertura:["B3","B4","B5"] },
+  bancarios:   { "1q":["B1","B2"],      "2q":["B1","B2","B3"], "3q":["B1","B2","B3"],      cobertura:["B2","B3"] },
+  bessa:       { "1q":["B1","B2"],      "2q":["B2","B3","B4"], "3q":["B2","B3","B4"],      cobertura:["B3","B4","B5"] },
+  manaira:     { "1q":["B1","B2"],      "2q":["B2","B3","B4"], "3q":["B2","B3","B4"],      cobertura:["B3","B4","B5"] },
+  tambau:      { "1q":["B2","B3"],      "2q":["B2","B3"],      "3q":["B3","B4"],           cobertura:["B3","B4"] },
+  cabo_branco: { "1q":["B2","B3"],      "2q":["B2","B3","B4"], "3q":["B3","B4","B5"],      cobertura:["B4","B5"] },
+  altiplano:   { "1q":[],               "2q":["B3","B4"],      "3q":["B3","B4","B5"],      cobertura:["B4","B5"] },
+  intermares:  { "1q":["B1","B2"],      "2q":["B2","B3"],      "3q":["B2","B3","B4"],      cobertura:["B3","B4"] }
+};
+var REGIOES = [
+  {k:"bessa",       t:"Bessa / Jardim Oceania", d:"praia no dia a dia"},
+  {k:"manaira",     t:"Manaíra",              d:"o m² mais desejado de JP"},
+  {k:"tambau",      t:"Tambaú",               d:"tradição à beira-mar"},
+  {k:"cabo_branco", t:"Cabo Branco",           d:"orla nobre"},
+  {k:"altiplano",   t:"Altiplano",             d:"alto padrão"},
+  {k:"intermares",  t:"Intermares / Ponta de Campina", d:"praia com espaço pra crescer"},
+  {k:"bancarios",   t:"Bancários",            d:"melhor custo-benefício"},
+  {k:"aberto",      t:"Prefiro sugestões",    d:"me mostrem as melhores oportunidades"}
 ];
-
+var TIPOS = [
+  {k:"1q",        t:"1 quarto / studio / flat"},
+  {k:"2q",        t:"2 quartos"},
+  {k:"3q",        t:"3 quartos ou mais"},
+  {k:"cobertura", t:"Cobertura"}
+];
+var PRAZOS = [
+  {k:"agora",       t:"Quero comprar agora"},
+  {k:"3meses",      t:"Até 3 meses"},
+  {k:"6meses",      t:"Até 6 meses"},
+  {k:"pesquisando", t:"Só pesquisando"}
+];
 var LABELS = {
-  morar:"morar", investir:"investir", decidindo:"ainda decidindo",
-  bessa:"Bessa", cabobranco:"Cabo Branco", tambau:"Tambaú/Manaíra", outra:"regi\u00e3o indiferente",
-  ate400:"até R$ 400 mil", "400a600":"R$ 400 mil a R$ 600 mil", "600a1m":"R$ 600 mil a R$ 1 milh\u00e3o", acima1m:"acima de R$ 1 milh\u00e3o",
-  "1q":"1 quarto", "2q":"2 quartos", "3q":"3 quartos ou mais", cobertura:"cobertura",
-  agora:"decis\u00e3o imediata", "3meses":"até 3 meses", pesquisando:"pesquisando",
-  avista:"à vista", financiamento:"financiamento", fgts:"uso de FGTS", naosei:"forma a definir"
+  aberto:"região indiferente", bessa:"Bessa/Jd Oceania", manaira:"Manaíra", tambau:"Tambaú",
+  cabo_branco:"Cabo Branco", altiplano:"Altiplano", bancarios:"Bancários", intermares:"Intermares/Pta de Campina",
+  "1q":"1 quarto","2q":"2 quartos","3q":"3 quartos ou mais",cobertura:"cobertura",
+  B1:FAIXAS.B1.label,B2:FAIXAS.B2.label,B3:FAIXAS.B3.label,B4:FAIXAS.B4.label,B5:FAIXAS.B5.label,
+  agora:"decisão imediata","3meses":"até 3 meses","6meses":"até 6 meses",pesquisando:"pesquisando",
+  pronto:"pronto para morar", planta:"na planta / em construção", tanto_faz:"pronto ou na planta"
 };
 
-var S = { etapa:"intro", idx:0, respostas:{}, nome:"", tel:"", erro:"" };
+function tiposVisiveis(regiao){
+  return TIPOS.filter(function(t){ return (MATRIZ[regiao][t.k]||[]).length>0; });
+}
+function faixasVisiveis(regiao,tipo){
+  return (MATRIZ[regiao][tipo]||[]).map(function(k){return FAIXAS[k];});
+}
+
+var S = { etapa:"regiao", regiao:null, tipo:null, faixa:null, fase:null, prazo:null, nome:"", tel:"", erro:"" };
 var app = document.getElementById("app");
+var TOTAL = 5;
 
-function persona(r){
-  if(r.purpose==="investir"){
-    if(r.price==="600a1m"||r.price==="acima1m")
-      return {t:"Investidor de Alto Padr\u00e3o", d:"Voc\u00ea busca ativos sólidos, bem localizados e com forte potencial de valorizacao."};
-    return {t:"Investidor Estratégico", d:"Voc\u00ea procura boa entrada e rentabilidade consistente no médio prazo."};
-  }
-  if(r.purpose==="morar"){
-    if(r.type==="cobertura"||r.price==="acima1m")
-      return {t:"Morar com Exclusividade", d:"Voc\u00ea quer um endere\u00e7o \u00e0 altura do seu padr\u00e3o de vida."};
-    if(r.price==="ate400")
-      return {t:"Conquista do Primeiro Lar", d:"O momento de realizar o sonho do imóvel próprio com intelig\u00eancia."};
-    return {t:"Seu Lar Ideal", d:"Um espa\u00e7o pensado pra qualidade de vida no dia a dia."};
-  }
-  return {t:"Em Busca do Imóvel Certo", d:"Vou te ajudar a encontrar a melhor oportunidade pro seu momento."};
+function persona(){
+  if(S.tipo==="1q" && S.faixa==="B1") return {t:"Investidor / Compacto", d:"Perfil de entrada inteligente: flats e studios com alto potencial de valorização e renda."};
+  if(S.tipo==="cobertura" || S.faixa==="B4" || S.faixa==="B5") return {t:"Morar com Exclusividade", d:"Você quer um endereço à altura do seu padrão de vida."};
+  if(S.faixa==="B1") return {t:"Conquista do Primeiro Lar", d:"O momento de realizar o sonho do imóvel próprio com inteligência."};
+  return {t:"Seu Lar Ideal", d:"Um espaço pensado pra qualidade de vida no dia a dia."};
 }
-
-function briefTexto(r){
-  return LABELS[r.type]+", "+LABELS[r.region]+", faixa "+LABELS[r.price]+", pra "+LABELS[r.purpose]+".";
+function briefTexto(){
+  var s = LABELS[S.tipo]+", "+LABELS[S.regiao]+", faixa "+LABELS[S.faixa];
+  if(S.tipo==="1q" && S.fase) s += " ("+LABELS[S.fase]+")";
+  return s+", prazo: "+LABELS[S.prazo]+".";
 }
-
 function whatsLink(){
-  var p=persona(S.respostas);
-  var msg="Ol\u00e1 "+CORRETOR_NOME+"! Fiz o quiz e quero receber minhas opções de imóveis. "+
-    "Perfil: "+p.t+". Procuro: "+briefTexto(S.respostas)+" Meu nome é "+S.nome+".";
+  var p=persona();
+  var msg="Olá "+CORRETOR_NOME+"! Fiz o quiz e quero receber minhas opções de imóveis. Perfil: "+p.t+". Procuro: "+briefTexto()+" Meu nome é "+S.nome+".";
   return "https://wa.me/"+WHATSAPP_NUMERO+"?text="+encodeURIComponent(msg);
 }
 
-function pick(btn,key,v){
-  btn.classList.add("chosen");
-  setTimeout(function(){ responder(key,v); }, 200);
+function header(step,titulo,sub){
+  var pct = Math.round(step/TOTAL*100);
+  return '<div class="topbar">'+(step>1?'<button class="back" onclick="voltar()">← voltar</button>':'<span></span>')+
+    '<span class="step">PASSO '+step+' DE '+TOTAL+'</span></div>'+
+    '<div class="track"><div class="fill" style="width:'+pct+'%"></div></div>'+
+    '<h2 class="serif" style="font-size:24px;margin-bottom:6px">'+titulo+'</h2>'+
+    (sub?'<p style="color:var(--muted);font-size:14px;margin-bottom:18px">'+sub+'</p>':'<div style="height:12px"></div>');
 }
-function responder(key,v){
-  S.respostas[key]=v;
-  if(S.idx+1<PERGUNTAS.length){S.idx++;} else {S.etapa="lead";}
-  render();
-}
-function voltar(){
-  if(S.etapa==="lead"){S.etapa="quiz";render();return;}
-  if(S.idx>0){S.idx--;} else {S.etapa="intro";}
-  render();
-}
-function saveLead(){
-  if(!SHEET_ENDPOINT) return;
-  var p=persona(S.respostas);
-  var payload={
-    nome:S.nome, whatsapp:S.tel, perfil:p.t,
-    objetivo:LABELS[S.respostas.purpose], regiao:LABELS[S.respostas.region],
-    faixa:LABELS[S.respostas.price], tipo:LABELS[S.respostas.type],
-    
-    origem:ORIGEM.origem, campanha:ORIGEM.campanha, conjunto:ORIGEM.conjunto, anuncio:ORIGEM.anuncio
-  };
-  var body="data="+encodeURIComponent(JSON.stringify(payload));
-  var ok=false;
-  try{
-    if(navigator.sendBeacon){
-      var blob=new Blob([body],{type:"application/x-www-form-urlencoded"});
-      ok=navigator.sendBeacon(SHEET_ENDPOINT,blob);
-    }
-  }catch(e){}
-  if(!ok){
-    try{
-      fetch(SHEET_ENDPOINT,{method:"POST",mode:"no-cors",keepalive:true,headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body});
-    }catch(e){}
-  }
-}
-function mascaraTel(v){
-  var d=v.replace(/\D/g,"").slice(0,11);
-  if(d.length<=2) return d.length?"("+d:"";
-  if(d.length<=6) return "("+d.slice(0,2)+") "+d.slice(2);
-  if(d.length<=10) return "("+d.slice(0,2)+") "+d.slice(2,6)+"-"+d.slice(6);
-  return "("+d.slice(0,2)+") "+d.slice(2,7)+"-"+d.slice(7);
-}
-function enviar(){
-  S.nome=document.getElementById("nome").value;
-  S.tel=document.getElementById("tel").value;
-  var digits=S.tel.replace(/\D/g,"");
-  if(S.nome.trim().length<2){S.erro="Digite seu nome.";render();return;}
-  if(digits.length<10){S.erro="Digite um WhatsApp válido com DDD.";render();return;}
-  S.erro=""; saveLead(); try{ if(window.fbq) fbq("track","Lead",{content_name:persona(S.respostas).t}); }catch(e){} S.etapa="resultado"; render();
+function opts(list,fn){
+  return '<div class="opts">'+list.map(function(o){
+    return '<button class="opt" onclick="'+fn+'(this,\''+o.k+'\')"><span class="txt"><span class="t">'+(o.t||o.label)+'</span>'+(o.d?'<span class="d">'+o.d+'</span>':'')+'</span></button>';
+  }).join("")+'</div>';
 }
 
 function render(){
-  var total=PERGUNTAS.length;
-  var prog = S.etapa==="lead"?100:Math.round((S.idx/total)*100);
-  var html='<div class="screen">';
-
-  if(S.etapa!=="intro" && S.etapa!=="resultado"){
-    html+='<div class="topbar"><button class="back" onclick="voltar()">\u2190 Voltar</button>'+
-      '<span class="step">'+(S.etapa==="lead"?"Quase lá":"Etapa "+(S.idx+1)+" de "+total)+'</span></div>'+
-      '<div class="track"><div class="fill" style="width:'+prog+'%"></div></div>';
+  if(S.etapa==="regiao"){
+    app.innerHTML='<div class="screen">'+
+      '<p class="step" style="margin-bottom:10px">QUIZ RÁPIDO · 20 SEGUNDOS · RECEBA SUA SELEÇÃO NO WHATSAPP</p>'+
+      header(1,"Onde você quer morar (ou investir) em João Pessoa?","Regiões com estoque real hoje:")+
+      opts(REGIOES,"pickRegiao")+
+      '<p class="note">Corretora Jéssica Araújo · CRECI 3694 · @jessicafaraujocorretora</p>'+
+      '</div>';
+    return;
   }
-
-  if(S.etapa==="intro"){
-    html+='<div class="center" style="padding:26px 0">'+
-      '<span class="pill">Jo\u00e3o Pessoa</span>'+
-      '<h1 class="serif">Descubra o <span class="accent">imóvel ideal</span> pra voc\u00ea</h1>'+
-      '<p class="sub">Responda algumas perguntas rápidas. Eu identifico o seu perfil e te envio uma sele\u00e7\u00e3o sob medida, direto no seu WhatsApp.</p>'+
-      '<button class="cta" onclick="S.etapa=\'quiz\';render()">Come\u00e7ar</button>'+
-      '<p class="note">Leva menos de 1 minuto.</p></div>';
+  if(S.etapa==="tipo"){
+    var lista=tiposVisiveis(S.regiao);
+    var nota = (S.regiao==="altiplano") ? '<p style="color:var(--muted);font-size:12.5px;margin-top:12px">Para o Altiplano, trabalhamos com 2 quartos, 3 quartos ou alto padrão.</p>' : '';
+    app.innerHTML='<div class="screen">'+header(2,"Que tipo de imóvel?","")+opts(lista,"pickTipo")+nota+'</div>';
+    return;
   }
-
-  else if(S.etapa==="quiz"){
-    var q=PERGUNTAS[S.idx];
-    html+='<h2 class="serif">'+q.titulo+'</h2><p class="sub">'+q.subtitulo+'</p>';
-    q.opcoes.forEach(function(o,n){
-      html+='<button class="opt" style="animation-delay:'+(n*0.06)+'s" onclick="pick(this,\''+q.key+'\',\''+o.v+'\')">'+
-        '<span class="ico">'+I[o.i]+'</span><span>'+o.l+'</span></button>';
-    });
+  if(S.etapa==="faixa"){
+    var fx=faixasVisiveis(S.regiao,S.tipo).map(function(f){return {k:f.k,t:f.label};});
+    var micro="";
+    if((S.tipo==="2q"||S.tipo==="3q") && S.regiao!=="bancarios"){
+      micro='<p style="color:var(--muted);font-size:12.5px;margin-top:12px">Para até R$ 400 mil em 2–3 quartos, nosso estoque concentra-se na região dos Bancários.</p>';
+    }
+    app.innerHTML='<div class="screen">'+header(3,"Qual faixa de investimento?","Faixas com produto real pra essa combinação:")+opts(fx,"pickFaixa")+micro+'</div>';
+    return;
   }
-
-  else if(S.etapa==="lead"){
-    html+='<h2 class="serif">Pronto. Sua sele\u00e7\u00e3o está a caminho.</h2>'+
-      '<p class="sub">Para onde envio as opções que combinam com o seu perfil?</p>'+
-      '<label>Seu nome</label><input id="nome" autocomplete="name" autocapitalize="words" placeholder="Como posso te chamar?" value="'+S.nome+'">'+
-      '<label>Seu WhatsApp</label><input id="tel" type="tel" inputmode="numeric" autocomplete="tel" oninput="this.value=mascaraTel(this.value)" placeholder="(83) 9 9999-9999" value="'+S.tel+'">'+
-      (S.erro?'<p class="err">'+S.erro+'</p>':'')+
-      '<button class="cta" onclick="enviar()">Ver meu perfil</button>'+
-      '<p class="note">Seus dados s\u00e3o usados apenas para o atendimento.</p>';
+  if(S.etapa==="fase"){
+    var ops=[{k:"pronto",t:"Pronto para morar"},{k:"planta",t:"Na planta / em construção",d:"melhores condições de entrada"},{k:"tanto_faz",t:"Tanto faz"}];
+    app.innerHTML='<div class="screen">'+header(3,"Pronto ou na planta?","Pra flats e studios, isso muda as opções:")+opts(ops,"pickFase")+'</div>';
+    return;
   }
-
-  else if(S.etapa==="resultado"){
-    var p=persona(S.respostas);
-    html+='<div class="center" style="padding:6px 0">'+
-      '<div class="seal">'+I.key+'</div>'+
-      '<p class="sub" style="margin-bottom:2px">'+S.nome+', o seu perfil é</p>'+
-      '<h2 class="serif accent" style="font-size:27px">'+p.t+'</h2>'+
-      '<div class="divider"></div>'+
-      '<p class="sub" style="margin:0 0 4px">'+p.d+'</p>'+
-      '<div class="resultcard"><p class="rotulo">O que voc\u00ea procura</p><p class="brief">'+briefTexto(S.respostas)+'</p></div>'+
-      '<p class="sub" style="margin-bottom:16px">Vou reunir as melhores opções pro seu perfil e enviar agora no seu WhatsApp.</p>'+
-      '<a class="whats" href="'+whatsLink()+'" target="_blank" rel="noopener">'+I.msg+' Receber minhas opções</a>'+
-      '<p class="note">Resposta personalizada com base nas suas respostas.</p></div>';
+  if(S.etapa==="prazo"){
+    app.innerHTML='<div class="screen">'+header(4,"Pra quando é a compra?","")+opts(PRAZOS,"pickPrazo")+'</div>';
+    return;
   }
+  if(S.etapa==="contato"){
+    app.innerHTML='<div class="screen">'+header(5,"Pra onde enviamos sua seleção?","Seus dados ficam só com a corretora. Zero spam.")+
+      '<div class="field"><label>Seu nome</label><input id="nome" type="text" placeholder="Como podemos te chamar?" value="'+S.nome+'"/></div>'+
+      '<div class="field"><label>Seu WhatsApp</label><input id="tel" type="tel" placeholder="(83) 9 0000-0000" value="'+S.tel+'"/></div>'+
+      (S.erro?'<p style="color:#e08b6d;font-size:13px;margin-bottom:10px">'+S.erro+'</p>':'')+
+      '<button class="cta" onclick="enviar()">Receber minha seleção →</button>'+
+      '<p style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center">Ao enviar, você concorda em receber contato da corretora.</p></div>';
+    return;
+  }
+  if(S.etapa==="fim"){
+    var p=persona();
+    app.innerHTML='<div class="screen" style="text-align:center">'+
+      '<div style="font-size:40px;margin-bottom:10px">✨</div>'+
+      '<p class="step" style="margin-bottom:8px">SEU PERFIL</p>'+
+      '<h2 class="serif" style="font-size:26px;color:var(--gold);margin-bottom:8px">'+p.t+'</h2>'+
+      '<p style="color:var(--muted);font-size:14.5px;margin-bottom:8px">'+p.d+'</p>'+
+      '<p style="font-size:14px;margin-bottom:22px">'+briefTexto()+'</p>'+
+      '<a class="cta" style="display:block;text-decoration:none;text-align:center" href="'+whatsLink()+'">Falar com a '+CORRETOR_NOME+' no WhatsApp →</a>'+
+      '<p style="color:var(--muted);font-size:12px;margin-top:14px">'+CORRETOR_NOME+' Araújo · CRECI 3694</p></div>';
+    return;
+  }
+}
 
-  html+='</div>';
-  app.innerHTML=html;
+function chosen(btn){ btn.classList.add("chosen"); }
+function pickRegiao(b,k){ chosen(b); S.regiao=k; setTimeout(function(){S.etapa="tipo";render();},220); }
+function pickTipo(b,k){ chosen(b); S.tipo=k; setTimeout(function(){S.etapa="faixa";render();},220); }
+function pickFaixa(b,k){ chosen(b); S.faixa=k; setTimeout(function(){ S.etapa=(S.tipo==="1q")?"fase":"prazo"; render(); },220); }
+function pickFase(b,k){ chosen(b); S.fase=k; setTimeout(function(){S.etapa="prazo";render();},220); }
+function pickPrazo(b,k){ chosen(b); S.prazo=k; setTimeout(function(){S.etapa="contato";render();},220); }
+function voltar(){
+  var ordem=["regiao","tipo","faixa"].concat(S.tipo==="1q"?["fase"]:[]).concat(["prazo","contato"]);
+  var i=ordem.indexOf(S.etapa);
+  S.etapa = i>0 ? ordem[i-1] : "regiao"; render();
+}
+
+function uuid(){ return "ld-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10); }
+function enviar(){
+  var nome=document.getElementById("nome").value.trim();
+  var tel=document.getElementById("tel").value.replace(/\D/g,"");
+  if(nome.length<2){S.erro="Escreve seu nome pra corretora saber com quem fala :)";render();return;}
+  if(tel.length<10){S.erro="Confere o WhatsApp — precisa do DDD.";render();return;}
+  S.nome=nome; S.tel=tel; S.erro="";
+
+  var eventId = uuid();
+  var p = persona();
+  var payload = {
+    nome:S.nome, whatsapp:"("+tel.slice(0,2)+") "+tel.slice(2,7)+"-"+tel.slice(7),
+    perfil:p.t,
+    objetivo:(S.tipo==="1q"&&S.faixa==="B1")?"investir":"morar",
+    regiao:LABELS[S.regiao], faixa:LABELS[S.faixa], tipo:LABELS[S.tipo],
+    prazo:LABELS[S.prazo], fase:(S.tipo==="1q"?LABELS[S.fase||"tanto_faz"]:""),
+    event_id:eventId,
+    origem:ORIGEM.origem, campanha:ORIGEM.campanha, conjunto:ORIGEM.conjunto, anuncio:ORIGEM.anuncio
+  };
+
+  if(!PREVIEW){
+    try{
+      fbq("track","Lead",{content_name:"quiz_imovel_v2"},{eventID:eventId});
+      var qualificado = (S.faixa!=="B1") || (S.tipo==="1q");
+      if(qualificado) fbq("trackCustom","LeadQualificado",{faixa:S.faixa,tipo:S.tipo},{eventID:"q-"+eventId});
+      var body="data="+encodeURIComponent(JSON.stringify(payload));
+      fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body});
+    }catch(e){}
+  } else {
+    console.log("[PREVIEW] payload que seria enviado:",payload);
+  }
+  S.etapa="fim"; render();
 }
 
 render();
