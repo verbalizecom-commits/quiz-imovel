@@ -196,7 +196,16 @@ function opts(list,fn){
   }).join("")+'</div>';
 }
 
+var _lastEtapaTracked = null;
+function trackEtapa(){
+  try{
+    if(PREVIEW || S.etapa===_lastEtapaTracked) return;
+    _lastEtapaTracked = S.etapa;
+    fbq("trackCustom","QuizEtapa_"+S.etapa,{});
+  }catch(e){}
+}
 function render(){
+  trackEtapa();
   if(S.etapa==="regiao"){
     app.innerHTML='<div class="screen">'+
       '<p class="step" style="margin-bottom:10px">QUIZ RÁPIDO · 20 SEGUNDOS · RECEBA SUA SELEÇÃO NO WHATSAPP</p>'+
@@ -271,6 +280,10 @@ function enviar(){
   var tel=document.getElementById("tel").value.replace(/\D/g,"");
   if(nome.length<2){S.erro="Escreve seu nome pra corretora saber com quem fala :)";render();return;}
   if(tel.length<10){S.erro="Confere o WhatsApp — precisa do DDD.";render();return;}
+  if(tel.length>11){S.erro="Confere o WhatsApp \u2014 n\u00famero com d\u00edgitos demais.";render();return;}
+  if(/^(\d)\1+$/.test(tel.slice(2))){S.erro="Esse n\u00famero n\u00e3o parece v\u00e1lido \u2014 confere o WhatsApp :)";render();return;}
+  if(/(0123456789|1234567890|9876543210)/.test(tel)){S.erro="Esse n\u00famero n\u00e3o parece v\u00e1lido \u2014 confere o WhatsApp :)";render();return;}
+  if(tel.length===11 && tel.charAt(2)!=="9"){S.erro="Celular com DDD deve come\u00e7ar com 9 ap\u00f3s o DDD.";render();return;}
   S.nome=nome; S.tel=tel; S.erro="";
 
   var eventId = uuid();
@@ -291,7 +304,11 @@ function enviar(){
       var qualificado = (S.faixa!=="B1") || (S.tipo==="1q");
       if(qualificado) fbq("trackCustom","LeadQualificado",{faixa:S.faixa,tipo:S.tipo},{eventID:"q-"+eventId});
       var body="data="+encodeURIComponent(JSON.stringify(payload));
-      fetch(ENDPOINT,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body});
+      var sent=false;
+      if(navigator.sendBeacon){
+        try{ sent = navigator.sendBeacon(ENDPOINT, new Blob([body],{type:"application/x-www-form-urlencoded"})); }catch(e){ sent=false; }
+      }
+      if(!sent){ fetch(ENDPOINT,{method:"POST",mode:"no-cors",keepalive:true,headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body}); }
     }catch(e){}
   } else {
     console.log("[PREVIEW] payload que seria enviado:",payload);
