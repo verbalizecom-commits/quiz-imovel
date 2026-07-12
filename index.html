@@ -309,6 +309,19 @@ function enviar(){
         try{ sent = navigator.sendBeacon(ENDPOINT, new Blob([body],{type:"application/x-www-form-urlencoded"})); }catch(e){ sent=false; }
       }
       if(!sent){ fetch(ENDPOINT,{method:"POST",mode:"no-cors",keepalive:true,headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body}); }
+
+      // CAPI server-side (dedup pelo mesmo event_id)
+      try{
+        var capiPayload = JSON.parse(JSON.stringify(payload));
+        capiPayload.qualificado = qualificado;
+        capiPayload.source_url = location.href;
+        var capiBody = JSON.stringify(capiPayload);
+        var capiSent=false;
+        if(navigator.sendBeacon){
+          try{ capiSent = navigator.sendBeacon("/api/capi", new Blob([capiBody],{type:"application/json"})); }catch(e){ capiSent=false; }
+        }
+        if(!capiSent){ fetch("/api/capi",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},body:capiBody}); }
+      }catch(e){}
     }catch(e){}
   } else {
     console.log("[PREVIEW] payload que seria enviado:",payload);
